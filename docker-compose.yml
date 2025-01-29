@@ -1,0 +1,23 @@
+services:
+  db:
+    container_name: ${DB_NAME}
+    build: db/
+    image: db
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - ${DB_PORT}:5432
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${DB_USERNAME} -d ${DB_NAME}'"]
+      interval: 10s
+      timeout: 5s
+    # volumes:
+    #   - ./.database_data:/var/lib/postgresql/data
+
+
+# volumes:
+#   .database_data:
+#     driver: local
