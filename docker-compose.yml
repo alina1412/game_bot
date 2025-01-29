@@ -14,10 +14,39 @@ services:
       test: ["CMD-SHELL", "sh -c 'pg_isready -U ${DB_USERNAME} -d ${DB_NAME}'"]
       interval: 10s
       timeout: 5s
-    # volumes:
-    #   - ./.database_data:/var/lib/postgresql/data
-
+    volumes:
+    - ./.database_data:/var/lib/postgresql/game_data
+    
+  rabbitmq:
+    container_name: rabbitmq
+    build: rabbitmq_docker/
+    image: rabbitmq-service 
+    # restart: always   
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 10s
+    env_file: .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_NODE_TYPE: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - r_data:/var/lib/rabbitmq/data
+      - r_logs:/var/log/rabbitmq/log
 
 # volumes:
 #   .database_data:
 #     driver: local
+volumes:
+  r_data:
+    driver: local
+  r_logs:
+    driver: local
+  # .database_data:
+  #   driver: local
+  # django_data:
+  #   driver: local
