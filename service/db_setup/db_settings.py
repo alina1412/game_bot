@@ -6,13 +6,17 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm import DeclarativeBase
 
 from service.config import db_settings, logger
+from service.db_setup.models import BaseModel
 
 
 class DbConnector:
     def __init__(self) -> None:
         self.engine: AsyncEngine | None = None
+        self._db: type[DeclarativeBase] = BaseModel
+        self.session: async_sessionmaker[AsyncSession] | None = None
 
     @property
     def uri(self) -> str:
@@ -40,11 +44,12 @@ class DbConnector:
     def session_maker(self) -> async_sessionmaker:
         if not self.engine:
             self.get_engine()
-        return async_sessionmaker(
+        self.session = async_sessionmaker(
             self.engine,
             class_=AsyncSession,
             expire_on_commit=False,
         )
+        return self.session
 
 
 async def get_session() -> AsyncGenerator:
