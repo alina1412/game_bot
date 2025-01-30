@@ -7,22 +7,27 @@ import aio_pika
 import pamqp
 import pika
 from aio_pika.abc import AbstractChannel, AbstractQueue
-from app.base.base_accessor import BaseAccessor
 
-from service.dataclasses import Update
+# from service.config import logger
+from service.vk_api.dataclasses import Update
 
-if typing.TYPE_CHECKING:
-    from app.web.app import Application
+# from app.base.base_accessor import BaseAccessor
+
+# if typing.TYPE_CHECKING:
+#     from app.web.app import Application
 
 
-class QueueAccessor(BaseAccessor):
-    def __init__(self, app: "Application", *args, **kwargs):
-        self.app = app
-        self.logger = self.app.logger
+class QueueAccessor:
+    def __init__(self, app):
         self.credentials = None
-        super().__init__(app, *args, **kwargs)
+        self.app = app
+        # super().__init__(app, *args, **kwargs)
 
-    async def connect(self, app: "Application"):
+    @property
+    def logger(self):
+        return self.app.config.logger
+
+    async def connect(self):
         self.username = self.app.config.rabbit.user
         self.password = str(self.app.config.rabbit.password)
         self.host = self.app.config.rabbit.host
@@ -39,7 +44,7 @@ class QueueAccessor(BaseAccessor):
             port=5672,
         )
 
-    async def disconnect(self, app: "Application"):
+    async def disconnect(self):
         self.logger.info("QueueAccessor disconnect")
 
     async def send_to_que(self, bunch: list[Update]) -> None:
@@ -67,7 +72,7 @@ class QueueAccessor(BaseAccessor):
         async with message.process(ignore_processed=True):
             encoded = message.body.decode("utf-8")
             message_dict = json.loads(encoded)
-            await self.app.store.bots_manager.handle_updates(message_dict)
+            await self.app.storage.bots_manager.handle_updates(message_dict)
 
             await message.ack()
             self.logger.info("consumed")

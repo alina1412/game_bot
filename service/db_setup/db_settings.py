@@ -13,10 +13,11 @@ from service.db_setup.models import BaseModel
 
 
 class DbConnector:
-    def __init__(self) -> None:
+    def __init__(self, app) -> None:
         self.engine: AsyncEngine | None = None
         self._db: type[DeclarativeBase] = BaseModel
         self.session: async_sessionmaker[AsyncSession] | None = None
+        self.logger = logger
 
     @property
     def uri(self) -> str:
@@ -50,6 +51,15 @@ class DbConnector:
             expire_on_commit=False,
         )
         return self.session
+
+    async def connect(self) -> None:
+        self.session = self.session_maker()
+        self.logger.info("connected to db")
+
+    async def disconnect(self) -> None:
+        if self.engine:
+            await self.engine.dispose()
+            self.logger.info("disconnected from db")
 
 
 async def get_session() -> AsyncGenerator:

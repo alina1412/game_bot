@@ -57,7 +57,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('first_name', sa.String(length=50), nullable=False),
     sa.Column('second_name', sa.String(length=50), nullable=False),
-    sa.Column('vk_id', sa.Integer(), nullable=False),
+    sa.Column('vk_id', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('participant',
