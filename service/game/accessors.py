@@ -526,13 +526,13 @@ class GameAdminAccessor(BaseAccessor):
 
     async def statistic_games_status(self) -> list[StatusCountSchema]:
         query = (
-            sa_select(GameModel.status, func.count())
+            sa_select(GameModel.status, func.count().label("count"))
             .select_from(GameModel)
             .group_by(GameModel.status)
             .order_by(GameModel.status)
         )
         result = (await self.get_db_result(query)).fetchall()
-        return [StatusCountSchema().load(elem._mapping) for elem in result]
+        return [StatusCountSchema(**elem._mapping) for elem in result]
 
 
 class UserAccessor(BaseAccessor):

@@ -34,7 +34,7 @@ async def quiz_add_handler(
     # user_token_data=Depends(get_user_by_token)
     # token: Annotated[str, Depends(oauth2_scheme)],
     request: Request,
-    session: AsyncSession = Depends(get_session),
+    # session: AsyncSession = Depends(get_session),
     Authorization: str | None = Header(default=None),
     quizzes_input: list[QuizSchema] = [],
 ):
@@ -73,23 +73,21 @@ async def get_status_count(
     # user_token_data=Depends(get_user_by_token)
     # settings: Settings = Depends(get_settings),
 ):
-    """Page"""
-    # assert settings.config.database.database
-
-    assert request.app.config.game
+    """Page statistics of games"""
+    statistics = await request.app.storage.admin.statistic_games_status()
 
     return {
         "success": True,
         "data": {
             "status": 200,
-            "data": {"s": True},  # settings.app_name
+            "data": {"statistics": statistics},  # settings.app_name
         },
     }
 
 
 # UserSearchView
 @api_router.get(
-    "/get-user",
+    "/user",
     response_model=OkAnswerSchema,
     responses={
         status.HTTP_400_BAD_REQUEST: {"description": "Bad request"},
@@ -97,14 +95,17 @@ async def get_status_count(
     },
 )
 async def get_user(
+    request: Request,
+    user_vk_id: int,
     # user_input: User = Depends(),
     # user_token_data=Depends(get_user_by_token)
 ):
-    """Page"""
+    """Info get_user"""
+    user = await request.app.storage.user.get_user(id_=None, vk_id=user_vk_id)
     return {
         "success": True,
         "data": {
             "status": 200,
-            "data": {},
+            "data": user,
         },
     }
