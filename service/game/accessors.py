@@ -35,10 +35,8 @@ if TYPE_CHECKING:
     from fastapi import FastAPI
 
 
-class GameAccessor:
-    def __init__(self, app: "FastAPI") -> None:
-        # super().__init__(app, *args, **kwargs)
-        ...
+class BaseAccessor:
+    def __init__(self, app: "FastAPI", *args, **kwargs):
         self.app = app
 
     @property
@@ -46,12 +44,29 @@ class GameAccessor:
         return self.app.config.logger
 
     @property
-    def session(self) -> async_sessionmaker[AsyncSession]:
-        return self.app.db.session
+    async def session(
+        self,
+    ) -> AsyncSession:  #  -> async_sessionmaker[AsyncSession]:
+        session_maker = self.app.db.session_maker
+        async with session_maker() as session:
+            return session
+
+    async def get_db_result(self, query):
+        async_session = await self.session
+        result = await async_session.execute(query)
+        await async_session.commit()
+        return result
+
+
+class GameAccessor(BaseAccessor):
+    def __init__(self, app: "FastAPI") -> None:
+        super().__init__(app)
+        ...
+        self.app = app
 
     async def get_games(self) -> GameModel | None:
         query = sa_select(GameModel).order_by(GameModel.finished.desc())
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalars().all()
 
     async def create_participant(self, user_id: int, game_id: int) -> int:
@@ -60,7 +75,7 @@ class GameAccessor:
             .values(user_id=user_id, game_id=game_id)
             .returning(ParticipantModel.id)
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalar_one()
 
     async def amount_of_participants(self, game_id: int) -> int:
@@ -69,7 +84,7 @@ class GameAccessor:
             .select_from(ParticipantModel)
             .where(ParticipantModel.game_id == game_id)
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalar()
 
     async def chat_has_running_game(self, chat_id: int) -> int | None:
@@ -77,7 +92,7 @@ class GameAccessor:
         query = sa_select(GameModel.id).where(
             GameModel.chat_id == chat_id, GameModel.finished.is_(None)
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalars().first()
 
     async def game_has_participant(self, user_id: int, game_id: int) -> bool:
@@ -85,19 +100,19 @@ class GameAccessor:
             ParticipantModel.user_id == user_id,
             ParticipantModel.game_id == game_id,
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return bool(result.scalars().first())
 
     async def game_is_finished(self, game_id: int) -> int | None:
         query = sa_select(GameModel.id).where(
             GameModel.id == game_id, GameModel.finished.is_not(None)
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalars().first()
 
     async def get_question(self, question_id: int) -> str:
         query = sa_select(QuizModel.question).where(QuizModel.id == question_id)
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalar()
 
     async def generate_rounds_for_game(
@@ -105,6 +120,7 @@ class GameAccessor:
         game_id: int,
         question_amount=3,
     ) -> Sequence[Row]:
+        async_session = await self.session
         sub_query_choice = (
             sa_select(QuizModel.id, cast(game_id, Integer))
             .order_by(func.random())
@@ -123,13 +139,12 @@ class GameAccessor:
             .where(GameModel.id == game_id)
         )
 
-        async with self.session.begin() as session:
-            result = await session.execute(query1_insert_rounds)
-            await session.execute(query2_change_status)
-            await session.commit()
-            return result.all()  # [(9,), (10,), (11,)]
+        result = await async_session.execute(query1_insert_rounds)
+        await async_session.execute(query2_change_status)
+        await async_session.commit()
+        return result.all()  # [(9,), (10,), (11,)]
 
-    async def generate_new_game(self, chat_id: int) -> int:
+    async def generate_new_game(self, chat_id: int) -> int | None:
         """Return game id"""
         new_game_query1 = (
             sa_insert(GameModel).values(chat_id=chat_id).returning(GameModel.id)
@@ -137,16 +152,18 @@ class GameAccessor:
         status_change_query2 = sa_update(GameModel).values(
             status=GameStatusEnum.created_game.value
         )
-
-        async with self.session.begin() as session:
-            result = await session.execute(new_game_query1)
-            game_id = result.scalar_one()
-            status_change_query2 = status_change_query2.where(
-                GameModel.id == game_id
-            )
-            await session.execute(status_change_query2)
-            await session.commit()
-
+        # TODO in one transaction
+        async_session = await self.session
+        result = await async_session.execute(new_game_query1)
+        game_id = result.scalar_one()
+        if not game_id:
+            self.logger.error("not game")
+            return
+        status_change_query2 = status_change_query2.where(
+            GameModel.id == game_id
+        )
+        await async_session.execute(status_change_query2)
+        await async_session.commit()
         return game_id
 
     async def get_participant_id(self, vk_id: int, game_id: int) -> int | None:
@@ -165,7 +182,7 @@ class GameAccessor:
                 UserModel.vk_id == vk_id, ParticipantModel.game_id == game_id
             )
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalar()
 
     async def get_game_winners(self, game_id: int) -> list[Winners]:
@@ -195,7 +212,7 @@ class GameAccessor:
             )
             .order_by(ParticipantModel.score.desc())
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         res = result.all()
         return [Winners(**elem._mapping) for elem in res]
 
@@ -214,7 +231,7 @@ class GameAccessor:
         if chat_id:
             query = query.where(GameModel.chat_id == chat_id)
 
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         if result.rowcount and result.returned_defaults:
             return result.returned_defaults[0]
         return None
@@ -253,7 +270,7 @@ class GameAccessor:
             .order_by(desc("score"))
             .limit(limit)
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         res = result.all()
         return [Winners(**elem._mapping) for elem in res]
 
@@ -265,7 +282,7 @@ class GameAccessor:
             .values({"score": ParticipantModel.__table__.c.score + add_score})
             .where(ParticipantModel.id == participant_id)
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         if result.rowcount and result.returned_defaults:
             return result.returned_defaults[0]
         return None
@@ -291,7 +308,7 @@ class GameAccessor:
             .having(func.count(QuizModel.id) > 0)
         )
 
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return [
             PriceChoice(price=price, cnt=cnt) for cnt, price in result.all()
         ]
@@ -315,7 +332,7 @@ class GameAccessor:
             .having(func.count(RoundModel.id) > 0)
         )
 
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return [
             CategoryChoice(category=category, cnt=cnt)
             for cnt, category in result.all()
@@ -344,7 +361,7 @@ class GameAccessor:
                 QuizModel.category == category,
             )
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         result = result.fetchone()
         if not result:
             return None
@@ -354,7 +371,7 @@ class GameAccessor:
         query = sa_select(QuizModel.answer, QuizModel.price).where(
             QuizModel.id == question_id
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         res = result.first()
         if not res:
             raise NotImplementedError
@@ -367,7 +384,7 @@ class GameAccessor:
             .values(used="waiting")
             .where(RoundModel.id == round_id)
         )
-        await self.session.execute(query)
+        await self.get_db_result(query)
 
     async def mark_next_answering_player(
         self, chat_id: int, player_vk_id: int
@@ -382,26 +399,25 @@ class GameAccessor:
             .where(RoundModel.used == "waiting", RoundModel.game_id == game_id)
         ).returning(RoundModel.id)
 
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         return result.scalar()
 
     async def player_answering_question(
         self, game_id: int, player_vk_id: int
     ) -> int:
-        async with self.session.begin() as session:
-            result = await session.execute(
-                sa_select(RoundModel.id).where(
-                    RoundModel.used == "answering",
-                    RoundModel.game_id == game_id,
-                    RoundModel.player_answers == player_vk_id,
-                )
-                # .with_for_update(nowait=True)
+        result = await self.get_db_result(
+            sa_select(RoundModel.id).where(
+                RoundModel.used == "answering",
+                RoundModel.game_id == game_id,
+                RoundModel.player_answers == player_vk_id,
             )
-            round_id = result.scalar_one_or_none()
-            if not round_id:
-                await session.rollback()
-                return False
-            return await self.use_question_in_round(session, round_id)
+            # .with_for_update(nowait=True)
+        )
+        round_id = result.scalar_one_or_none()
+        if not round_id:
+            # await session.rollback()
+            return False
+        return await self.use_question_in_round(None, round_id)
 
     async def use_question_in_round(self, session, round_id) -> int:
         query = (
@@ -412,60 +428,60 @@ class GameAccessor:
             )
             .returning(RoundModel.question_id)
         )
-        result = await session.execute(query)
-        await session.commit()
+        result = await self.get_db_result(query)
+        # await session.commit()
+        self.logger.warning("round_id marked as used")
         return result.scalar()
 
     async def if_no_one_answers_mark_used(
         self, game_id, round_id, status="waiting"
     ):
-        async with self.session.begin() as session:
-            result = await session.execute(
-                sa_select(RoundModel.id, RoundModel.player_answers)
-                .select_from(
-                    join(
-                        RoundModel,
-                        GameModel,
-                        RoundModel.game_id == GameModel.id,
-                    )
+        # TODO in one transaction
+        result = await self.get_db_result(
+            sa_select(RoundModel.id, RoundModel.player_answers)
+            .select_from(
+                join(
+                    RoundModel,
+                    GameModel,
+                    RoundModel.game_id == GameModel.id,
                 )
-                .where(
-                    RoundModel.id == round_id,
-                    RoundModel.used == status,
-                    RoundModel.game_id == game_id,
-                    GameModel.finished.is_(None),
-                )
-                # .with_for_update(nowait=True)
             )
-            round_data = result.first()
-            if not round_data:
-                await session.rollback()
-                return None
-            round_id, player_answers = round_data
+            .where(
+                RoundModel.id == round_id,
+                RoundModel.used == status,
+                RoundModel.game_id == game_id,
+                GameModel.finished.is_(None),
+            )
+            # .with_for_update(nowait=True)
+        )
+        round_data = result.first()
+        if not round_data:
+            # await session.rollback()
+            return None
+        round_id, player_answers = round_data
 
-            question_id = await self.use_question_in_round(session, round_id)
-            correct_answer = await self.get_answer_score(question_id)
-            return (correct_answer, player_answers)
+        question_id = await self.use_question_in_round(None, round_id)
+        correct_answer = await self.get_answer_score(question_id)
+        return (correct_answer, player_answers)
 
     async def change_game_status(
         self, status: str, game_id: int, waiting_user: int | None = None
     ) -> None:
         vals = {"status": status, "waiting_user": waiting_user}
         query = sa_update(GameModel).values(vals).where(GameModel.id == game_id)
-        await self.session.execute(query)
+        await self.get_db_result(query)
 
     async def get_game_status(self, game_id: int) -> GameStatusDto | None:
         query = sa_select(GameModel.status, GameModel.waiting_user).where(
             GameModel.id == game_id
         )
-        async with self.session() as async_session:
-            result = await async_session.execute(query)
-            result = result.first()
-            if not result:
-                return None
-            status, waiting_user = result
-            status = GameStatusEnum[status]
-            return GameStatusDto(status, waiting_user)
+        result = await self.get_db_result(query)
+        result = result.first()
+        if not result:
+            return None
+        status, waiting_user = result
+        status = GameStatusEnum[status]
+        return GameStatusDto(status, waiting_user)
 
     async def get_random_participants(
         self, game_id: int, limit=1
@@ -487,25 +503,22 @@ class GameAccessor:
             .order_by(func.random())
             .limit(limit)
         )
-        result = await self.session.execute(query)
+        result = await self.get_db_result(query)
         result = result.all()
         return [UserDto(**elem._mapping) for elem in result]
 
 
-class GameAdminAccessor:
+class GameAdminAccessor(BaseAccessor):
     def __init__(self, app: "FastAPI") -> None:
+        super().__init__(app)
         self.app = app
         ...
-
-    @property
-    def logger(self):
-        return self.app.config.logger
 
     async def add_quizzes(self, quizzes: list):
         if not quizzes:
             return
         query = sa_insert(QuizModel).values(quizzes)
-        await self.session.execute(query)
+        await self.get_db_result(query)
 
     async def statistic_games_status(self) -> list[StatusCountSchema]:
         query = (
@@ -514,22 +527,15 @@ class GameAdminAccessor:
             .group_by(GameModel.status)
             .order_by(GameModel.status)
         )
-        result = (await self.session.execute(query)).fetchall()
+        result = (await self.get_db_result(query)).fetchall()
         return [StatusCountSchema().load(elem._mapping) for elem in result]
 
 
-class UserAccessor:
+class UserAccessor(BaseAccessor):
     def __init__(self, app: "FastAPI") -> None:
+        super().__init__(app)
         self.config = app.config
         self.app = app
-
-    @property
-    def logger(self):
-        return self.app.config.logger
-
-    @property
-    def session(self) -> async_sessionmaker[AsyncSession]:
-        return self.app.db.session
 
     async def get_user(
         self, id_: int | None, vk_id: int | None
@@ -543,38 +549,41 @@ class UserAccessor:
             else query.where(UserModel.vk_id == vk_id)
         )
 
-        async with self.session() as async_session:
-            result = await async_session.execute(query)
-            user = result.scalars().first()
-            if not user:
-                return None
-            return UserFoundSchema().load(
-                {
-                    "vk_id": user.vk_id,
-                    "first_name": user.first_name,
-                    "second_name": user.second_name,
-                }
-            )
+        result = await self.get_db_result(query)
+        user = result.scalars().first()
+        if not user:
+            return None
+        return UserFoundSchema(
+            **{
+                "vk_id": user.vk_id,
+                "first_name": user.first_name,
+                "second_name": user.second_name,
+            }
+        )
 
     async def create_user_if_not_exists(self, user: UserDto) -> int:
-        async with self.session.begin() as session:
-            select_user_id_result = await session.execute(
-                sa_select(UserModel.id)
-                .where(UserModel.vk_id == user.vk_id)
-                .with_for_update()
-            )
-            user_id = select_user_id_result.scalar_one_or_none()
-            if not user_id:
-                insert_user_query = (
-                    sa_insert(UserModel)
-                    .values(
-                        vk_id=user.vk_id,
-                        first_name=user.first_name,
-                        second_name=user.second_name,
-                    )
-                    .returning(UserModel.id)
+        # TODO
+        async_session = await self.session
+        select_user_id_result = await async_session.execute(
+            sa_select(UserModel.id).where(UserModel.vk_id == user.vk_id)
+            # .with_for_update()
+        )
+        user_id = select_user_id_result.scalar_one_or_none()
+        if user_id:
+            await async_session.rollback()
+        else:
+            insert_user_query = (
+                sa_insert(UserModel)
+                .values(
+                    vk_id=user.vk_id,
+                    first_name=user.first_name,
+                    second_name=user.second_name,
                 )
-                select_user_id_result = await session.execute(insert_user_query)
-                await session.commit()
-                user_id = select_user_id_result.scalars().first()
-            return user_id
+                .returning(UserModel.id)
+            )
+            select_user_id_result = await async_session.execute(
+                insert_user_query
+            )
+            await async_session.commit()
+            user_id = select_user_id_result.scalars().first()
+        return user_id

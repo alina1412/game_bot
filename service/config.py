@@ -8,11 +8,7 @@ import yaml
 from dotenv import load_dotenv
 
 from service.bot.managers import BotManager
-from service.game.accessors import (
-    GameAccessor,
-    GameAdminAccessor,
-    UserAccessor,
-)
+from service.game.accessors import GameAccessor, GameAdminAccessor, UserAccessor
 from service.game.managers import GameManager
 from service.rabbitmq_service.accessor import QueueAccessor
 from service.vk_api.accessor import VkApiAccessor

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from service.config import Storage, get_config, logger
-from service.db_setup.db_settings import DbConnector
+from service.db_setup.db_connector import DbConnector
 from service.endpoints.data_handlers import api_router as data_routes
 from service.endpoints.put_handlers import api_router as put_routes
 from service.endpoints.update_handlers import api_router as upd_routes

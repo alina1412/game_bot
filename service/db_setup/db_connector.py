@@ -16,7 +16,7 @@ class DbConnector:
     def __init__(self, app) -> None:
         self.engine: AsyncEngine | None = None
         self._db: type[DeclarativeBase] = BaseModel
-        self.session: async_sessionmaker[AsyncSession] | None = None
+        # self.session: async_sessionmaker[AsyncSession] | None = None
         self.logger = logger
 
     @property
@@ -32,10 +32,10 @@ class DbConnector:
     def get_engine(self) -> AsyncEngine:
         self.engine = create_async_engine(
             self.uri,
-            pool_size=1,
-            max_overflow=0,
-            pool_recycle=280,
-            pool_timeout=20,
+            pool_size=20,
+            # max_overflow=0,
+            # pool_recycle=280,
+            # pool_timeout=20,
             echo=True,
             future=True,
         )
@@ -45,16 +45,20 @@ class DbConnector:
     def session_maker(self) -> async_sessionmaker:
         if not self.engine:
             self.get_engine()
-        self.session = async_sessionmaker(
+        return async_sessionmaker(
             self.engine,
             class_=AsyncSession,
             expire_on_commit=False,
         )
-        return self.session
+
+    @property
+    def session(self) -> async_sessionmaker[AsyncSession] | None:
+        return self.session_maker
 
     async def connect(self) -> None:
-        self.session = self.session_maker()
-        self.logger.info("connected to db")
+        # self.session = self.session_maker()
+        self.logger.info("connecting to db")
+        return self.session_maker()
 
     async def disconnect(self) -> None:
         if self.engine:

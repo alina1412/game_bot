@@ -25,7 +25,9 @@ section = config.config_ini_section
 for db_set_key, db_set_val in db_setup_from_env.items():
     config.set_section_option(section, db_set_key, db_set_val)
 
-
+print()
+print(db_setup_from_env)
+print()
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:

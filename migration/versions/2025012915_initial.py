@@ -80,6 +80,9 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
+    from tests.test_game.lst_sql import lst
+    for sql in lst:
+        op.execute(sql)
 
 
 def downgrade() -> None:

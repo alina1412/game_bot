@@ -15,6 +15,7 @@ from service.dataclasses import (
 )
 from service.game.exceptions import GameFinishedError
 from service.game.managers import GameManager
+from service.game.schemes import UserFoundSchema
 from service.vk_api.btn_creator import BtnCreator
 from service.vk_api.dataclasses import BtnData, ChatInvite, Message, Update
 
@@ -35,6 +36,10 @@ class CatGameEventsBotManager:
     @property
     def game_manager(self) -> GameManager:
         return self.app.storage.game_manager
+
+    @property
+    def logger(self):
+        return self.app.config.logger
 
     async def cat_receiver(self, message: Update):
         chat_id = message.object.message.peer_id
@@ -157,6 +162,10 @@ class GamePreparationBotManager:
     @property
     def game_manager(self) -> GameManager:
         return self.app.storage.game_manager
+
+    @property
+    def logger(self):
+        return self.app.config.logger
 
     async def suggest_to_start_game(
         self, chat_id: int, game_id: int, chat_members: list[UserDto]
@@ -293,6 +302,10 @@ class GameRoundBotManager:
     @property
     def game_manager(self) -> GameManager:
         return self.app.storage.game_manager
+
+    @property
+    def logger(self):
+        return self.app.config.logger
 
     async def choose_user_for_action(
         self,
@@ -478,7 +491,7 @@ class GameRoundBotManager:
 
         score = answer.score
         user = await self.app.storage.user.get_user(id_=None, vk_id=user_vk_id)
-        user_mention = self.bot_manager.get_user_mention(UserDto(**user))
+        user_mention = self.bot_manager.get_user_mention(user)
 
         lst_of_btns = [
             BtnData(
@@ -681,7 +694,7 @@ class BotManager:
     def __init__(self, app: "FastAPI"):
         self.app = app
         self.bot = None
-        self.logger = getLogger("handler")
+        # self.logger = getLogger("handler")
         self.cat_in_box_manager = CatGameEventsBotManager(app)
         # self.statistic_manager = ChatStatisticBotManager(app)
         self.preparation_manager = GamePreparationBotManager(app)
@@ -690,6 +703,10 @@ class BotManager:
     @property
     def game_manager(self) -> GameManager:
         return self.app.storage.game_manager
+
+    @property
+    def logger(self):
+        return self.app.config.logger
 
     def is_member_a_game_bot(self, member_id: int) -> bool:
         return member_id == -self.app.config.bot.group_id
@@ -752,7 +769,9 @@ class BotManager:
                 chat_id, message.member_id
             )
 
-    def get_user_mention(self, user: UserDto | Winners) -> str:
+    def get_user_mention(
+        self, user: UserDto | Winners | UserFoundSchema
+    ) -> str:
         return f"[id{user.vk_id}|{user.first_name} {user.second_name}]"
 
     def get_message(self, text: str, chat_id: int) -> Message:

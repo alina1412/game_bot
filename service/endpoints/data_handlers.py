@@ -11,7 +11,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 from service.config import DEBUG  # , get_settings, Settings
-from service.db_setup.db_settings import get_session
+from service.db_setup.db_connector import get_session
 
 api_router = APIRouter(
     prefix="/v1",

@@ -1,10 +1,7 @@
-
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from service.db_setup.db_settings import get_session
-
+from service.db_setup.db_connector import get_session
 
 api_router = APIRouter(
     prefix="/v1",
