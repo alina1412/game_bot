@@ -517,7 +517,11 @@ class GameAdminAccessor(BaseAccessor):
     async def add_quizzes(self, quizzes: list):
         if not quizzes:
             return
-        query = sa_insert(QuizModel).values(quizzes)
+        new_lst = [
+            {k: v for k, v in dict(quiz).items() if v is not None}
+            for quiz in quizzes
+        ]
+        query = sa_insert(QuizModel).values(new_lst)
         await self.get_db_result(query)
 
     async def statistic_games_status(self) -> list[StatusCountSchema]:

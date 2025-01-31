@@ -13,7 +13,7 @@ from service.db_setup.models import BaseModel
 
 
 class DbConnector:
-    def __init__(self, app) -> None:
+    def __init__(self, *args) -> None:
         self.engine: AsyncEngine | None = None
         self._db: type[DeclarativeBase] = BaseModel
         # self.session: async_sessionmaker[AsyncSession] | None = None

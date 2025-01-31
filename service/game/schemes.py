@@ -21,11 +21,22 @@ class OkAnswerSchema(BaseModel):
 
 
 class QuizSchema(BaseModel):
-    id: int = Field(...)
+    id: int | None = None
     question: str = Field(...)
     answer: str = Field(...)
     price: int = Field(...)
-    category: str = Field(...)
+    category: CategoryEnum = Field(...)
+
+    class Config:
+        schema_extra = [
+            {
+                "id": 1,
+                "question": "question",
+                "answer": "answer",
+                "price": 100,
+                "category": "common",
+            }
+        ]
 
 
 # class QuizSchema(Schema):
@@ -63,9 +74,9 @@ class QuizzesListSchema(BaseModel):
                     "question": "question",
                     "answer": "answer",
                     "price": 100,
-                    "category": "category",
+                    "category": "common",
                 }
-            ],
+            ]
         }
 
 

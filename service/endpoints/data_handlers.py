@@ -3,9 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 # from service.__main__ import get_settings
-from service.game.schemes import OkAnswerSchema, QuizzesListSchema
+from service.game.schemes import OkAnswerSchema, QuizSchema, QuizzesListSchema
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -28,18 +29,26 @@ api_router = APIRouter(
         status.HTTP_422_UNPROCESSABLE_ENTITY: {"description": "Bad request"},
     },
 )
-async def quiz_add(
+async def quiz_add_handler(
     # user_input: User = Depends(),
     # user_token_data=Depends(get_user_by_token)
     # token: Annotated[str, Depends(oauth2_scheme)],
+    request: Request,
     session: AsyncSession = Depends(get_session),
     Authorization: str | None = Header(default=None),
-    quizzes: QuizzesListSchema = [],
+    quizzes_input: list[QuizSchema] = [],
 ):
-    """Page"""
+    """Page add_quizzes"""
     """auth = request.headers.get("Authorization")
     if not auth or auth.lower() != "bearer kts":
         raise HTTPUnauthorized"""
+    if not quizzes_input:
+        raise HTTPException(status_code=400, detail="No data provided to add")
+    try:
+        await request.app.storage.admin.add_quizzes(quizzes_input)
+    except IntegrityError as exc:
+        request.app.db.logger.error("error: ", exc_info=exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return {
         "success": True,
         "data": {
