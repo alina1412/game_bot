@@ -3,11 +3,17 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import pytz
-from sqlalchemy import Integer, Row, cast, desc, func
-from sqlalchemy import insert as sa_insert
-from sqlalchemy import join
-from sqlalchemy import select as sa_select
-from sqlalchemy import update as sa_update
+from sqlalchemy import (
+    Integer,
+    Row,
+    cast,
+    desc,
+    func,
+    insert as sa_insert,
+    join,
+    select as sa_select,
+    update as sa_update,
+)
 from sqlalchemy.dialects.postgresql import insert as sa_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 

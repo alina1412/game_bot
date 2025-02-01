@@ -2,10 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# from service.__main__ import get_settings
 from service.game.schemes import OkAnswerSchema, QuizSchema, QuizzesListSchema
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")

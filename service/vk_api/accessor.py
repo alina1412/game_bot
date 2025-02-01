@@ -10,8 +10,8 @@ from httpx import AsyncClient
 
 # from service.config import logger
 from service.dataclasses import UserDto
-from service.vk_api.dataclasses import ChatInvite  # Member,; Members,
 from service.vk_api.dataclasses import (
+    ChatInvite,  # Member,; Members,
     Message,
     Update,
     UpdateEventMessage,
