@@ -54,4 +54,4 @@ isort:
 	poetry run isort service tests
 
 req:
-	poetry export -f requirements.txt --without-hashes --with dev --output ./service/requirements.txt
+	poetry export -f requirements.txt --without-hashes --without dev --output requirements.txt

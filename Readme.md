@@ -1,4 +1,4 @@
-empty draft for FastApi
+game bot with FastApi and VK api
 
 ### setup
 - creating virtual environment, .env
@@ -13,7 +13,7 @@ enter docker container (why?):
 `docker exec -it 47dece677d93  bash`
 
 in host console:
-`psql -h 127.0.0.1 -p 5433 -U user postgres`
+`psql -h 127.0.0.1 -p 5433 -U user postgres -d kts_game`
 
 
 ### alembic:

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, status
 
-
 api_router = APIRouter(
     prefix="/v1",
     tags=["private"],

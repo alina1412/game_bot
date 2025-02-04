@@ -1,0 +1,20 @@
+user_token: 1
+
+session:
+  key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
+database:
+  host: localhost # or name of docker-service
+  port: 5432
+  user: postgres
+  password: postgres
+  database: kts_game
+bot:
+  token: 1
+  group_id: 1
+game:
+  rounds: 2
+rabbitmq:
+  user: user
+  password: 123
+  host: rabbitmq # "rabbitmq" if docker else "127.0.0.1"
+  queue_title: task_queue

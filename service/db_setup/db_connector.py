@@ -6,13 +6,18 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm import DeclarativeBase
 
 from service.config import db_settings, logger
+from service.db_setup.models import BaseModel
 
 
 class DbConnector:
-    def __init__(self) -> None:
+    def __init__(self, *args) -> None:
         self.engine: AsyncEngine | None = None
+        self._db: type[DeclarativeBase] = BaseModel
+        # self.session: async_sessionmaker[AsyncSession] | None = None
+        self.logger = logger
 
     @property
     def uri(self) -> str:
@@ -27,10 +32,10 @@ class DbConnector:
     def get_engine(self) -> AsyncEngine:
         self.engine = create_async_engine(
             self.uri,
-            pool_size=1,
-            max_overflow=0,
-            pool_recycle=280,
-            pool_timeout=20,
+            pool_size=20,
+            # max_overflow=0,
+            # pool_recycle=280,
+            # pool_timeout=20,
             echo=True,
             future=True,
         )
@@ -45,6 +50,20 @@ class DbConnector:
             class_=AsyncSession,
             expire_on_commit=False,
         )
+
+    @property
+    def session(self) -> async_sessionmaker[AsyncSession] | None:
+        return self.session_maker
+
+    async def connect(self) -> None:
+        # self.session = self.session_maker()
+        self.logger.info("connecting to db")
+        return self.session_maker()
+
+    async def disconnect(self) -> None:
+        if self.engine:
+            await self.engine.dispose()
+            self.logger.info("disconnected from db")
 
 
 async def get_session() -> AsyncGenerator:

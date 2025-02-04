@@ -1,51 +1,67 @@
-[tool.poetry]
-name = "fastapi-draft"
+[project]
+name = "game-bot"
 version = "0.1.0"
-description = "template"
-authors = ["alina1412 <alina1412@mail.ru>"]
+description = ""
+authors = [
+    {name = "alina1412",email = "alina1412@mail.ru"}
+]
 readme = "README.md"
-packages = []
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "alembic (==1.14.0)",
+    "annotated-types (==0.7.0)",
+    "anyio (==4.8.0)",
+    "astroid (==3.3.8)",
+    "async-timeout (==5.0.1)",
+    "asyncpg (==0.30.0)",
+    "click (==8.1.8)",
+    "dill (==0.3.9)",
+    "exceptiongroup (==1.2.2)",
+    "fastapi (==0.115.6)",
+    "greenlet (==3.1.1)",
+    "h11 (==0.14.0)",
+    "idna (==3.10)",
+    "isort (==5.13.2)",
+    "mako (==1.3.8)",
+    "markupsafe (==3.0.2)",
+    "mccabe (==0.7.0)",
+    "platformdirs (==4.3.6)",
+    "psycopg2-binary (==2.9.10)",
+    "pydantic (==2.10.5)",
+    "pydantic-core (==2.27.2)",
+    "pylint (==3.3.3)",
+    "python-dotenv (==1.0.1)",
+    "sniffio (==1.3.1)",
+    "sqlalchemy (==2.0.37)",
+    "starlette (==0.41.3)",
+    "tomli (==2.2.1)",
+    "tomlkit (==0.13.2)",
+    "typing-extensions (==4.12.2)",
+    "uvicorn (==0.34.0)",
+    "pyyaml (>=6.0.2,<7.0.0)",
+    "pytz (>=2025.1,<2026.0)",
+    "dataclasses-json (>=0.6.7,<0.7.0)",
+    "aio-pika (>=9.5.4,<10.0.0)",
+    "pika (>=1.3.2,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-alembic = "1.14.0"
-annotated-types = "0.7.0"
-anyio = "4.8.0"
-astroid = "3.3.8"
-async-timeout = "5.0.1"
-asyncpg = "0.30.0"
-click = "8.1.8"
-dill = "0.3.9"
-exceptiongroup = "1.2.2"
-fastapi = "0.115.6"
-greenlet = "3.1.1"
-h11 = "0.14.0"
-idna = "3.10"
-isort = "5.13.2"
-mako = "1.3.8"
-markupsafe = "3.0.2"
-mccabe = "0.7.0"
-platformdirs = "4.3.6"
-psycopg2-binary = "2.9.10"
-pydantic = "2.10.5"
-pydantic-core = "2.27.2"
-pylint = "3.3.3"
-python-dotenv = "1.0.1"
-sniffio = "1.3.1"
-sqlalchemy = "2.0.37"
-starlette = "0.41.3"
-tomli = "2.2.1"
-tomlkit = "0.13.2"
-typing-extensions = "4.12.2"
-uvicorn = "0.34.0"
 
+]
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
+poetry-plugin-export = "^1.9.0"
+pytest = "^8.3.4"
+pytest-asyncio = "^0.25.3"
+ruff = "^0.9.4"
+
+
+
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
 
 [tool.black]
 line-length = 79
@@ -57,3 +73,197 @@ known_local_folder = []
 [tool.mypy]
 disallow_untyped_defs = true
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode="auto"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "[%(levelname)8s] ---- %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+filterwarnings = [
+    "ignore::DeprecationWarning:asyncpg.*:",
+    "ignore::DeprecationWarning:pytest_asyncio.plugin.*:",
+    "ignore::DeprecationWarning",
+]
+
+
+
+[tool.ruff]
+line-length = 80
+indent-width = 4
+target-version = "py312"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".gitlab",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "alembic",
+    "migration",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "docker",
+    "env",
+    "etc",
+    "requirements",
+    "venv"
+]
+
+[tool.ruff.format]
+# Аналогично black, двойные кавычки
+quote-style = "double"
+
+# Аналогично black, пробелы вместо табов
+indent-style = "space"
+
+# Аналогично black, trailing commas
+skip-magic-trailing-comma = false
+
+# Аналогично black, автоматически подходящее окончание строки.
+line-ending = "auto"
+
+[tool.ruff.lint]
+# Список кодов или префиксов правил, которые следует считать исправляемыми. (https://docs.astral.sh/ruff/settings/#fixable)
+# По умолчанию все правила считаются исправляемыми.
+fixable = ["I", "RUF022", "RUF023"]
+preview = true
+
+# Правила, которые следует добавить к указанным в "select=[]" конфига или "--select" cli-команды
+extend-select = [
+    "ASYNC",    # https://docs.astral.sh/ruff/rules/#flake8-async-async
+    "A001",     # https://docs.astral.sh/ruff/rules/builtin-variable-shadowing
+    "B",        # https://docs.astral.sh/ruff/rules/builtin-argument-shadowing
+    "C4",       # https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+    "C901",     # https://docs.astral.sh/ruff/rules/complex-structure
+    "COM818",   # https://docs.astral.sh/ruff/rules/trailing-comma-on-bare-tuple
+    "COM819",   # https://docs.astral.sh/ruff/rules/prohibited-trailing-comma
+    "D",        # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "E",        # https://docs.astral.sh/ruff/rules/#error-e
+    "FLY",      # https://docs.astral.sh/ruff/rules/#flynt-fly
+    "FBT003",   # https://docs.astral.sh/ruff/rules/boolean-positional-value-in-call
+    "G",        # https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+    "I",        # https://docs.astral.sh/ruff/rules/#isort-i
+    "INP",      # https://docs.astral.sh/ruff/rules/#flake8-no-pep420-inp
+    "ISC003",   # https://docs.astral.sh/ruff/rules/explicit-string-concatenation
+    "LOG",      # https://docs.astral.sh/ruff/rules/#flynt-fly
+    "N",        # https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "PGH",      # https://docs.astral.sh/ruff/rules/#pygrep-hooks-pgh
+    "PIE",      # (https://docs.astral.sh/ruff/rules/#flake8-pie-pie)
+    "PYI",      # https://docs.astral.sh/ruff/rules/#flake8-pyi-pyi
+    "PL",       # https://docs.astral.sh/ruff/rules/#pylint-pl
+    "PT",       # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+    "PERF",     # https://docs.astral.sh/ruff/rules/#perflint-perf
+    "PLR",      # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+    "RET",      # https://docs.astral.sh/ruff/rules/#flake8-return-ret
+    "RSE",      # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
+    "RUF",      # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "SIM",      # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "T20",      # https://docs.astral.sh/ruff/rules/#flake8-print-t20
+    "ASYNC1",     # https://docs.astral.sh/ruff/rules/#flake8-trio-trio
+    "TRY300",   # https://docs.astral.sh/ruff/rules/try-consider-else
+    "TRY203",   # https://docs.astral.sh/ruff/rules/useless-try-except
+    "TRY401",   # https://docs.astral.sh/ruff/rules/verbose-log-message
+    "UP",       # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "YTT",      # https://docs.astral.sh/ruff/rules/#flake8-2020-ytt
+]
+
+
+# Правила, которые следует добавить к указанным в "ignore=[]" конфига или "--ignore" команды
+extend-ignore = [
+    "D1",       # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "D205",     # https://docs.astral.sh/ruff/rules/blank-line-after-summary
+    "D415",     # https://docs.astral.sh/ruff/rules/ends-in-punctuation
+    "D400",
+    "D401",
+    "RET504",
+    "B008",
+
+    "PLR2004",  # https://docs.astral.sh/ruff/rules/magic-value-comparison
+    "PLR0904",  # https://docs.astral.sh/ruff/rules/too-many-public-methods 
+    "PLR0917",  # https://docs.astral.sh/ruff/rules/too-many-positional 
+    "PLR6201",  # https://docs.astral.sh/ruff/rules/literal-membership 
+    "PLR6301",  # https://docs.astral.sh/ruff/rules/no-self-use 
+    "PLW1514",  # https://docs.astral.sh/ruff/rules/unspecified-encoding
+    "PLW1641",  # https://docs.astral.sh/ruff/rules/eq-without-hash
+    "PLR0913",  # https://docs.astral.sh/ruff/rules/too-many-arguments 
+    "PLR1714",  # https://docs.astral.sh/ruff/rules/repeated-equality-comparison 
+    "PERF203",  # https://docs.astral.sh/ruff/rules/try-except-in-loop 
+
+    "PT007",    # https://docs.astral.sh/ruff/rules/pytest-parametrize-values-wrong-type 
+
+    "RUF001",   # https://docs.astral.sh/ruff/rules/ambiguous-unicode-character-string
+    "RUF002",   # https://docs.astral.sh/ruff/rules/ambiguous-unicode-character-docstring
+    "RUF003",   # https://docs.astral.sh/ruff/rules/ambiguous-unicode-character-comment
+
+    "RUF012",   # https://docs.astral.sh/ruff/rules/mutable-class-default
+    "RUF021",   # https://docs.astral.sh/ruff/rules/parenthesize-chained-operators
+
+
+    "SIM105",   # https://docs.astral.sh/ruff/rules/suppressible-exception
+    "SIM108",   # https://docs.astral.sh/ruff/rules/if-else-block-instead-of-if-exp 
+    "SIM117",   # https://docs.astral.sh/ruff/rules/multiple-with-statements 
+
+    "UP012",    # https://docs.astral.sh/ruff/rules/unnecessary-encode-utf8
+    "UP015",    # https://docs.astral.sh/ruff/rules/redundant-open-modes
+
+    "UP032",    # https://docs.astral.sh/ruff/rules/f-string 
+
+
+    # [!] При использовании Ruff в качестве форматтера, рекомендуется избегать следующих правил:
+    # (https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules)
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "D206",
+    "D300",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "COM812",
+    "COM819",
+    "ISC001",
+    "ISC002",
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+# PLC0415 https://docs.astral.sh/ruff/rules/import-outside-top-level 
+# F403 https://docs.astral.sh/ruff/rules/undefined-local-with-import-star 
+# F405 https://docs.astral.sh/ruff/rules/undefined-local-with-import-star-usage 
+# SIM300 https://docs.astral.sh/ruff/rules/yoda-conditions 
+
+"__init__.py" = ["F403", "PLC0415"]
+"urls.py" = ["PLC0415"]
+"tests/*.py" = ["SIM300", "F403", "F405", "INP001"]
+
+
+[tool.ruff.lint.pydocstyle]
+
+[tool.ruff.lint.isort]
+# Объекдиняем импорты из одного пакета
+combine-as-imports = true
+
+
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
+
+[tool.ruff.lint.flake8-pytest-style]
+# Делаем единый стиль скобок в тестах
+fixture-parentheses = false
+mark-parentheses = false
