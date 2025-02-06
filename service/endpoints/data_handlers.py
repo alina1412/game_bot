@@ -86,7 +86,7 @@ async def get_status_count(
 
 # UserSearchView
 @api_router.get(
-    "/user",
+    "/user/{user_vk_id}",
     response_model=OkAnswerSchema,
     responses={
         status.HTTP_400_BAD_REQUEST: {"description": "Bad request"},
