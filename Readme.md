@@ -1,4 +1,7 @@
-game bot with FastApi and VK api
+## game bot with FastApi and VK api
+
+![bot_vk](https://github.com/user-attachments/assets/d19d9be1-2d9d-45c4-ad60-bef6717ed6a6)
+
 
 ### setup
 - check file .python-version
