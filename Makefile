@@ -1,7 +1,7 @@
 run:
 	poetry run python -m service
 	
-alembic_up = make async-alembic-up
+alembic_up = make alembic-up
 
 ifdef OS
 	docker_up = docker compose up -d

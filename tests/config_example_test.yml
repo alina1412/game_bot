@@ -1,0 +1,20 @@
+user_token: 1
+
+session:
+  key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
+database:
+  host: localhost
+  port: 5436
+  user: kts_user
+  password: kts_pass
+  database: kts_test
+bot:
+  token: 1
+  group_id: 2
+game:
+  rounds: 2
+rabbitmq:
+  user: user
+  password: pass
+  host: rabbitmq
+  queue_title: task_queue
