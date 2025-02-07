@@ -2,12 +2,9 @@ import asyncio
 import typing
 from asyncio import Future, Task
 
-# from service.config import logger
 
 if typing.TYPE_CHECKING:
     from fastapi import FastAPI
-
-    # from service.vk_api.accessor import VkApiAccessor
 
 
 class Poller:

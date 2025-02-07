@@ -8,7 +8,6 @@ import pamqp
 import pika
 from aio_pika.abc import AbstractChannel, AbstractQueue
 
-# from service.config import logger
 from service.vk_api.dataclasses import Update
 
 # from app.base.base_accessor import BaseAccessor
@@ -22,17 +21,11 @@ class QueueAccessor:
         self.credentials = None
         self.app = app
         # super().__init__(app, *args, **kwargs)
-
-    @property
-    def logger(self):
-        return self.app.config.logger
-
-    async def connect(self):
         self.username = self.app.config.rabbit.user
         self.password = str(self.app.config.rabbit.password)
         self.host = self.app.config.rabbit.host
         self.queue_title = self.app.config.rabbit.queue_title
-        self.logger.info("QueueAccessor connect")
+        # self.logger.info("QueueAccessor connect")
         self.credentials = pika.PlainCredentials(
             username=self.username, password=self.password
         )
@@ -43,13 +36,37 @@ class QueueAccessor:
             # virtual_host="amqp",
             port=5672,
         )
+        self.sync_connection = None
+        self.async_connection = None
+
+    @property
+    def logger(self):
+        return self.app.config.logger
+
+    async def connect(self):
+        self.sync_connection = pika.BlockingConnection(self.parameters)
+        loop = asyncio.get_event_loop()
+        self.async_connection = await aio_pika.connect_robust(
+            host=self.host,
+            login=self.username,
+            password=self.password,
+            port=5672,
+            loop=loop,
+        )
+        self.logger.info("QueueAccessor connect")
 
     async def disconnect(self):
-        self.logger.info("QueueAccessor disconnect")
+        if self.sync_connection:
+            self.sync_connection.close()
+        if self.async_connection:
+            await self.async_connection.close()
+        self.logger.info("QueueAccessor disconnected")
 
     async def send_to_que(self, bunch: list[Update]) -> None:
-        connection = pika.BlockingConnection(self.parameters)
-        channel = connection.channel()
+        if not self.sync_connection:
+            await self.connect()
+        sync_connection = self.sync_connection
+        channel = sync_connection.channel()
         channel.queue_declare(queue=self.queue_title, durable=True)
 
         for item in bunch:
@@ -63,8 +80,7 @@ class QueueAccessor:
                     delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE,
                 ),
             )
-            self.logger.info("Sent %s", message)
-        connection.close()
+            self.logger.info("Sent to_que %s", message)
 
     async def process_message(
         self, message: aio_pika.abc.AbstractIncomingMessage
@@ -88,20 +104,15 @@ class QueueAccessor:
 
     async def receive_from_queue(self) -> None:
         """Create connection to rabbitmq, start process of receiving data"""
-        loop = asyncio.get_event_loop()
-        connection = await aio_pika.connect_robust(
-            host=self.host,
-            login=self.username,
-            password=self.password,
-            port=5672,
-            loop=loop,
-        )
-        channel = await connection.channel()
+        if not self.async_connection:
+            await self.connect()
+        async_connection = self.async_connection
+        channel = await async_connection.channel()
         await channel.set_qos(1)
         try:
             await self.rabbitmq_fetching(channel)
         except pamqp.exceptions.AMQPFrameError:
             self.logger.error("closed connection AMQPFrameError")
         except KeyboardInterrupt:
-            connection.close()
-            self.logger.info("closed connection")
+            await async_connection.close()
+            self.logger.info("QueueAccessor closed async_connection")

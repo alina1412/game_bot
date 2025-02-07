@@ -8,10 +8,9 @@ from urllib.parse import urlencode, urljoin
 import httpx
 from httpx import AsyncClient
 
-# from service.config import logger
 from service.dataclasses import UserDto
 from service.vk_api.dataclasses import (
-    ChatInvite,  # Member,; Members,
+    ChatInvite,
     Message,
     Update,
     UpdateEventMessage,
@@ -19,10 +18,11 @@ from service.vk_api.dataclasses import (
     UpdateObject,
 )
 from service.vk_api.poller import Poller
+from service.vk_api.worker import Worker
 
-# from aiohttp import TCPConnector
-# from aiohttp.client import ClientSession
 # from app.base.base_accessor import BaseAccessor
+if typing.TYPE_CHECKING:
+    from fastapi import FastAPI
 
 
 API_PATH = "https://api.vk.com/method/"
@@ -30,7 +30,7 @@ API_VERSION = "5.131"
 
 
 class VkApiAccessor:
-    def __init__(self, app):
+    def __init__(self, app: "FastAPI"):
         # super().__init__(app, *args, **kwargs)
         self.app = app
 
@@ -38,6 +38,7 @@ class VkApiAccessor:
         self.key: str | None = None
         self.server: str | None = None
         self.poller: Poller | None = None
+        self.worker: Worker | None = None
         self.ts: int | None = None
         self.token = app.config.bot.token
         self.group_id = app.config.bot.group_id
@@ -55,8 +56,12 @@ class VkApiAccessor:
             self.logger.error("Exception", exc_info=e)
 
         self.poller = Poller(self.app)
-        self.logger.info("Vk Poller start polling")
+        self.logger.info("Vk Poller starts polling from api to queue")
         self.poller.start()
+
+        self.worker = Worker(self.app)
+        # self.logger.info("Worker starts getting from queue")
+        # self.worker.start()
 
     async def disconnect(self) -> None:
         if self.session:
@@ -65,6 +70,9 @@ class VkApiAccessor:
         if self.poller:
             await self.poller.stop()
             self.logger.info("Vk Poller stopped")
+        if self.worker:
+            await self.worker.stop()
+            self.logger.info("Worker stopped")
 
     @staticmethod
     def _build_query(host: str, method: str, params: dict) -> str:
@@ -212,7 +220,7 @@ class VkApiAccessor:
             ),
         )
 
-    async def process_data_updates(self, data: dict):
+    async def form_updates_lst(self, data: dict) -> list:
         """In chats"""
         updates = []
         for update in data.get("updates", []):
@@ -234,22 +242,15 @@ class VkApiAccessor:
                     pass
                 else:
                     cur_upd = self.get_upd_obj_update_message(update)
-
             if cur_upd:
                 updates.append(cur_upd)
+        return updates
 
-        if not updates:
-            return
-
+    async def put_updates_to_queue(self, updates):
         self.append_task = asyncio.create_task(
             self.app.storage.que.send_to_que(bunch=updates)
         )
         self.append_task.add_done_callback(self._done_callback)
-
-        self.handle_task = asyncio.create_task(
-            self.app.storage.que.receive_from_queue()
-        )
-        self.handle_task.add_done_callback(self._done_callback)
 
     async def poll(self):
         assert self.server
@@ -280,7 +281,15 @@ class VkApiAccessor:
                     return
                 self.ts = data["ts"]
                 if data.get("updates", []):
-                    await self.process_data_updates(data)
+                    updates = await self.form_updates_lst(data)
+                    if updates:
+                        await self.put_updates_to_queue(updates)
+                        self.worker.start()  # receive_from_queue
+                        await self.worker.stop()
+                        # self.handle_task = asyncio.create_task(
+                        #     self.app.storage.que.receive_from_queue()
+                        # )
+                        # self.handle_task.add_done_callback(self._done_callback)
 
         except httpx.ReadTimeout as e:
             self.logger.error("ReadTimeout %s", url1)
