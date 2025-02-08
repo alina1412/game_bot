@@ -2,6 +2,8 @@ import asyncio
 import typing
 from asyncio import Future, Task
 
+from service.rabbitmq_service.accessor import QueueAccessor
+
 if typing.TYPE_CHECKING:
     from fastapi import FastAPI
 
@@ -17,7 +19,7 @@ class Worker:
         return self.app.config.logger
 
     @property
-    def queue(self):
+    def queue(self) -> QueueAccessor:
         return self.app.storage.que
 
     def start(self) -> None:
@@ -38,5 +40,3 @@ class Worker:
                 "worker had exception", exc_info=result.exception()
             )
             self.is_running = False  # my, needed?
-        if self.is_running:
-            self.start()

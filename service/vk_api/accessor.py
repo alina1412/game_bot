@@ -56,12 +56,12 @@ class VkApiAccessor:
             self.logger.error("Exception", exc_info=e)
 
         self.poller = Poller(self.app)
-        self.logger.info("Vk Poller starts polling from api to queue")
         self.poller.start()
+        self.logger.info("Vk Poller starts polling from api to queue")
 
         self.worker = Worker(self.app)
-        # self.logger.info("Worker starts getting from queue")
-        # self.worker.start()
+        self.worker.start()
+        self.logger.info("Worker starts getting from queue")
 
     async def disconnect(self) -> None:
         if self.session:
@@ -284,8 +284,8 @@ class VkApiAccessor:
                     updates = await self.form_updates_lst(data)
                     if updates:
                         await self.put_updates_to_queue(updates)
-                        self.worker.start()  # receive_from_queue
-                        await self.worker.stop()
+                        # self.worker.start()  # receive_from_queue
+                        # await self.worker.stop()
                         # self.handle_task = asyncio.create_task(
                         #     self.app.storage.que.receive_from_queue()
                         # )
