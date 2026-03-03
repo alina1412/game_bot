@@ -5,7 +5,7 @@ This bot integrates with VK chat for gameplay, uses RabbitMQ for message queuing
 
 It requires token for vk bot in config.yml.
 
-### Stack
+### 🛠️ Technology Stack
 - Core: Python, FastAPI, VK API
 - Database: PostgreSQL, SQLAlchemy, Alembic
 - Infrastructure: Docker, RabbitMQ
@@ -17,6 +17,7 @@ Prerequisites
 - Docker
 - Poetry (optional)
   
+###  📸 Screenshots
 ![bot_vk](https://github.com/user-attachments/assets/d19d9be1-2d9d-45c4-ad60-bef6717ed6a6)
 
 
