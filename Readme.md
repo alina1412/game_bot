@@ -3,6 +3,8 @@ A game bot for VK chat built with FastAPI and VK API.
 
 This bot integrates with VK chat for gameplay, uses RabbitMQ for message queuing and PostgreSQL for data storage.
 
+It requires token for vk bot in config.yml.
+
 ### Stack
 - Core: Python, FastAPI, VK API
 - Database: PostgreSQL, SQLAlchemy, Alembic
@@ -22,6 +24,7 @@ Prerequisites
 - check file .python-version
 - creating virtual environment or (`pyenv exec python -m venv .venv`), 
 - `cp .env.example .env`  # Configure your variables
+- `cp config_example.yml config.yml` # Configure your variables
 - `poetry install`
 - `make up` # Starts PostgreSQL and RabbitMQ in docker
 - `make alembic`
